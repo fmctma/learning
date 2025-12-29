@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawing App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .toolbar {
+            width: 200px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .toolbar h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .brush-option {
+            padding: 12px;
+            background: #f0f0f0;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .brush-option:hover {
+            background: #e0e0e0;
+            transform: translateX(5px);
+        }
+
+        .brush-option.active {
+            background: #667eea;
+            color: white;
+            border-color: #764ba2;
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        canvas {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            cursor: crosshair;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h1 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        .modal-content p {
+            color: #555;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .modal-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .modal-button:hover {
+            background: #764ba2;
+        }
+
+        .color-picker {
+            margin-top: 10px;
+        }
+
+        .color-picker input {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .size-control {
+            margin-top: 10px;
+        }
+
+        .size-control label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .size-control input {
+            width: 100%;
+        }
+
+        /* Slot Machine Styles */
+        .slot-machine-modal {
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .slot-machine {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .slot-machine h2 {
+            color: #ffd700;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .reels-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .reel {
+            width: 120px;
+            height: 150px;
+            background: white;
+            border: 5px solid #ffd700;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .reel-content {
+            position: absolute;
+            width: 100%;
+            transition: transform 0.1s linear;
+        }
+
+        .reel-item {
+            width: 100%;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            font-weight: bold;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .reel.spinning .reel-content {
+            transition: none;
+        }
+
+        .spin-button {
+            width: 100%;
+            padding: 15px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .spin-button:hover:not(:disabled) {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .spin-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        .result-message.win {
+            background: #4caf50;
+            color: white;
+        }
+
+        .result-message.lose {
+            background: #f44336;
+            color: white;
+        }
+
+        .close-slot-btn {
+            margin-top: 15px;
+            width: 100%;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .close-slot-btn:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <h2>🖌️ Brushes</h2>
+            <div class="brush-option active" data-brush="pen">Pen</div>
+            <div class="brush-option" data-brush="marker">Marker</div>
+            <div class="brush-option" data-brush="pencil">Pencil</div>
+            <div class="brush-option" data-brush="brush">Brush</div>
+            <div class="brush-option" data-brush="eraser">Eraser</div>
+            
+            <div class="color-picker">
+                <label style="display: block; margin-bottom: 5px; color: #555; font-size: 14px;">Color</label>
+                <input type="color" id="colorPicker" value="#000000">
+            </div>
+
+            <div class="size-control">
+                <label>Size: <span id="sizeValue">5</span>px</label>
+                <input type="range" id="sizeSlider" min="1" max="50" value="5">
+            </div>
+
+            <button class="brush-option" id="clearBtn" style="margin-top: 20px; background: #ff6b6b; color: white;">
+                Clear Canvas
+            </button>
+
+            <button class="brush-option" id="slotMachineBtn" style="margin-top: 10px; background: #ffd700; color: #333; font-weight: bold;">
+                🎰 Slot Machine
+            </button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="drawingCanvas" width="800" height="600"></canvas>
+        </div>
+    </div>
+
+    <div class="modal" id="welcomeModal">
+        <div class="modal-content">
+            <h1>Hello World!</h1>
+            <p>Don't forget, only lewd drawings of Bardia are permitted!</p>
+            <button class="modal-button" onclick="closeModal()">Got it!</button>
+        </div>
+    </div>
+
+    <div class="modal" id="slotMachineModal">
+        <div class="modal-content slot-machine-modal">
+            <div class="slot-machine">
+                <h2>🎰 SLOT MACHINE 🎰</h2>
+                <div class="reels-container">
+                    <div class="reel" id="reel1">
+                        <div class="reel-content" id="reelContent1"></div>
+                    </div>
+                    <div class="reel" id="reel2">
+                        <div class="reel-content" id="reelContent2"></div>
+                    </div>
+                    <div class="reel" id="reel3">
+                        <div class="reel-content" id="reelContent3"></div>
+                    </div>
+                </div>
+                <button class="spin-button" id="spinButton">SPIN!</button>
+                <div class="result-message" id="resultMessage"></div>
+                <button class="close-slot-btn" onclick="closeSlotMachine()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const modal = document.getElementById('welcomeModal');
+        const slotMachineModal = document.getElementById('slotMachineModal');
+        const colorPicker = document.getElementById('colorPicker');
+        const sizeSlider = document.getElementById('sizeSlider');
+        const sizeValue = document.getElementById('sizeValue');
+        const clearBtn = document.getElementById('clearBtn');
+        const slotMachineBtn = document.getElementById('slotMachineBtn');
+
+        let isDrawing = false;
+        let currentBrush = 'pen';
+        let hasStartedDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Set canvas background to white
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Brush settings
+        const brushSettings = {
+            pen: { opacity: 1.0, lineCap: 'round', lineJoin: 'round' },
+            marker: { opacity: 0.5, lineCap: 'round', lineJoin: 'round' },
+            pencil: { opacity: 0.7, lineCap: 'round', lineJoin: 'round' },
+            brush: { opacity: 0.8, lineCap: 'round', lineJoin: 'round' },
+            eraser: { opacity: 1.0, lineCap: 'round', lineJoin: 'round' }
+        };
+
+        // Brush selection
+        document.querySelectorAll('.brush-option[data-brush]').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.brush-option[data-brush]').forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                option.classList.add('active');
+                currentBrush = option.dataset.brush;
+            });
+        });
+
+        // Color picker
+        colorPicker.addEventListener('change', (e) => {
+            // Color is handled in draw function
+        });
+
+        // Size slider
+        sizeSlider.addEventListener('input', (e) => {
+            sizeValue.textContent = e.target.value;
+        });
+
+        // Clear canvas
+        clearBtn.addEventListener('click', () => {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+
+            // Show modal on first draw
+            if (!hasStartedDrawing) {
+                hasStartedDrawing = true;
+                modal.classList.add('show');
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+
+            const settings = brushSettings[currentBrush];
+            const size = parseInt(sizeSlider.value);
+            const color = currentBrush === 'eraser' ? 'white' : colorPicker.value;
+
+            ctx.globalAlpha = settings.opacity;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size;
+            ctx.lineCap = settings.lineCap;
+            ctx.lineJoin = settings.lineJoin;
+
+            // Special effects for different brushes
+            if (currentBrush === 'marker') {
+                ctx.globalCompositeOperation = 'multiply';
+            } else if (currentBrush === 'brush') {
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = color;
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+
+            lastX = currentX;
+            lastY = currentY;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        // Close modal
+        function closeModal() {
+            modal.classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Slot Machine
+        const symbols = ['🍒', '🍋', '🍊', '🍇', '🍉', '⭐', '💎', '7️⃣'];
+        let isSpinning = false;
+
+        // Initialize reels
+        function initializeReels() {
+            for (let i = 1; i <= 3; i++) {
+                const reelContent = document.getElementById(`reelContent${i}`);
+                reelContent.innerHTML = '';
+                for (let j = 0; j < 20; j++) {
+                    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+                    const item = document.createElement('div');
+                    item.className = 'reel-item';
+                    item.textContent = symbol;
+                    reelContent.appendChild(item);
+                }
+            }
+        }
+
+        // Open slot machine
+        slotMachineBtn.addEventListener('click', () => {
+            slotMachineModal.classList.add('show');
+            initializeReels();
+            document.getElementById('resultMessage').textContent = '';
+            document.getElementById('resultMessage').className = 'result-message';
+        });
+
+        // Spin function
+        function spinReel(reelNum, finalSymbol) {
+            return new Promise((resolve) => {
+                const reel = document.getElementById(`reel${reelNum}`);
+                const reelContent = document.getElementById(`reelContent${reelNum}`);
+                
+                reel.classList.add('spinning');
+                
+                // Add extra items for spinning effect
+                for (let i = 0; i < 10; i++) {
+                    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+                    const item = document.createElement('div');
+                    item.className = 'reel-item';
+                    item.textContent = symbol;
+                    reelContent.appendChild(item);
+                }
+
+                const spinDuration = 2000 + Math.random() * 1000;
+                const spinSpeed = 50;
+                let position = 0;
+                const totalItems = reelContent.children.length;
+
+                const spinInterval = setInterval(() => {
+                    position += spinSpeed;
+                    reelContent.style.transform = `translateY(-${position}px)`;
+
+                    if (position >= (totalItems - 3) * 150) {
+                        clearInterval(spinInterval);
+                        
+                        // Set final position to show the target symbol
+                        const finalIndex = symbols.indexOf(finalSymbol);
+                        const finalPosition = finalIndex * 150;
+                        reelContent.style.transform = `translateY(-${finalPosition}px)`;
+                        reelContent.style.transition = 'transform 0.3s ease';
+                        
+                        reel.classList.remove('spinning');
+                        resolve();
+                    }
+                }, 16);
+            });
+        }
+
+        // Spin button handler
+        document.getElementById('spinButton').addEventListener('click', async () => {
+            if (isSpinning) return;
+            
+            isSpinning = true;
+            const spinButton = document.getElementById('spinButton');
+            const resultMessage = document.getElementById('resultMessage');
+            
+            spinButton.disabled = true;
+            resultMessage.textContent = '';
+            resultMessage.className = 'result-message';
+
+            // Generate random final symbols
+            const finalSymbols = [
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)]
+            ];
+
+            // Reset reels
+            for (let i = 1; i <= 3; i++) {
+                const reelContent = document.getElementById(`reelContent${i}`);
+                reelContent.innerHTML = '';
+                reelContent.style.transition = 'none';
+                for (let j = 0; j < 20; j++) {
+                    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+                    const item = document.createElement('div');
+                    item.className = 'reel-item';
+                    item.textContent = symbol;
+                    reelContent.appendChild(item);
+                }
+                // Add final symbol at the beginning
+                const finalItem = document.createElement('div');
+                finalItem.className = 'reel-item';
+                finalItem.textContent = finalSymbols[i - 1];
+                reelContent.insertBefore(finalItem, reelContent.firstChild);
+            }
+
+            // Spin reels with slight delay between each
+            await spinReel(1, finalSymbols[0]);
+            await new Promise(resolve => setTimeout(resolve, 200));
+            await spinReel(2, finalSymbols[1]);
+            await new Promise(resolve => setTimeout(resolve, 200));
+            await spinReel(3, finalSymbols[2]);
+
+            // Check for win
+            if (finalSymbols[0] === finalSymbols[1] && finalSymbols[1] === finalSymbols[2]) {
+                resultMessage.textContent = '🎉 JACKPOT! YOU WIN! 🎉';
+                resultMessage.className = 'result-message win';
+            } else if (finalSymbols[0] === finalSymbols[1] || finalSymbols[1] === finalSymbols[2] || finalSymbols[0] === finalSymbols[2]) {
+                resultMessage.textContent = '🎊 Two of a kind! Small win! 🎊';
+                resultMessage.className = 'result-message win';
+            } else {
+                resultMessage.textContent = 'Try again!';
+                resultMessage.className = 'result-message lose';
+            }
+
+            isSpinning = false;
+            spinButton.disabled = false;
+        });
+
+        // Close slot machine
+        function closeSlotMachine() {
+            slotMachineModal.classList.remove('show');
+        }
+
+        // Close slot machine when clicking outside
+        slotMachineModal.addEventListener('click', (e) => {
+            if (e.target === slotMachineModal) {
+                closeSlotMachine();
+            }
+        });
+    </script>
+</body>
+</html>
